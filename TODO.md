@@ -1,3 +1,92 @@
-# TODO
+# TODO / Roadmap
 
-- [ ] re-branch `logo_black_240.png`
+PillBoy3000 = a silent, toy-like handheld game console on a Raspberry Pi Zero 1.3 +
+Waveshare 1.3" 240x240 LCD HAT (joystick + 3 side buttons) + Pi camera. The OS boots
+100% from RAM in seconds off a read-only microSD (no writes ever, safe to yank power).
+One card carries the whole game library behind a picker menu. The app is a stripped
+seedsigner fork (PIL rendering now; pygame trialed later). Sibling repo
+`../PillBoy3000-os` builds the microSD images (Buildroot, adapted from seedsigner-os).
+Workspace map and conventions: see `../AGENTS.md`.
+
+## Phase 1 — Stub app + desktop emulator ✅ DONE
+
+Stripped seedsigner fork boots to a game-picker menu with a Bounce demo game; runs on
+desktop via the built-in tkinter emulator (`cd src && python3 main.py`; WASD = joystick,
+Space = center press, U/J/M = side buttons). Venv needs a tkinter-capable python
+(macOS: `brew install python-tk@3.11`). Only dependency: Pillow.
+
+## Phase 2 — OS repo + dev loop ✅ DONE (authored, NOT yet build-tested)
+
+`../PillBoy3000-os` adapted from seedsigner-os (pi0 + pi0-dev only, Bitcoin packages
+stripped, pillboy branding/hostname/service names). `./dev.sh` in this repo gives
+sync/restart/logs/screenshot/shell against a dev device at `pillboy.local`.
+`main.py` dumps a screenshot on SIGUSR2 (that's how `dev.sh screenshot` works).
+
+## Phase 2.5 — First real image build ⏳ NEXT HARDWARE STEP (needs Docker + ~1-3h)
+
+Nothing below is verified yet; expect to iterate on build errors (that's normal for
+Buildroot config adaptations).
+
+- [ ] In `../PillBoy3000-os`: add the buildroot submodule (one-time):
+      `git submodule add https://github.com/seedsigner/buildroot opt/buildroot`
+      `git submodule update --init`   (then commit the submodule)
+- [ ] Build a dev image: `PB_ARGS="--pi0 --dev" docker compose up --build`
+      (clones the app from the bind-mounted `../PillBoy3000` checkout, branch `main`).
+      For iterating: `PB_ARGS="--no-op" docker compose up -d`, then
+      `docker exec -it <container> bash` and `./build.sh --pi0 --dev --no-clean`.
+- [ ] Flash `images/pillboy_os.main.pi0-dev.img` to a microSD (Raspberry Pi Imager /
+      balenaEtcher / dd), boot the Pi Zero 1.3 with the Waveshare HAT.
+- [ ] Connect Pi's *data* micro-USB port to the Mac (one cable = power + USB-ethernet),
+      enable macOS Internet Sharing for the RNDIS gadget, then follow the one-time SSH
+      setup in the `dev.sh` header. Verify: `ssh root@pillboy.local` (password `pillboy`).
+- [ ] Verify the dev loop end to end: `./dev.sh sync --restart`, `./dev.sh logs -f`,
+      `./dev.sh screenshot`, and confirm the menu + Bounce run on the real screen.
+- [ ] Build + flash + boot a release image (`PB_ARGS="--pi0"`): confirm fast boot,
+      confirm the card is never written, confirm no networking exists.
+- [ ] Measure and note: boot time, Bounce frame rate on hardware (PIL over SPI).
+
+## Phase 3 — Release image hardening & the "toy" experience
+
+- [ ] Splash-to-menu time budget: trim slow imports / defer camera stack.
+- [ ] Games load from the card's FAT partition into RAM at boot (games-as-data), so
+      adding a game = copying files to the card, not rebuilding the zImage.
+- [ ] Decide poweroff story (release image has no power button UI need? PowerOffView
+      currently says "just cut power" — verify that message fits the toy concept).
+- [ ] re-branch `logo_black_240.png` (splash + screensaver still show SeedSigner logo);
+      also rename `SeedSignerIconConstants` and regenerate/replace the icon font.
+- [ ] Trim dead code inherited from seedsigner as it surfaces (keyboard.py, microsd
+      toasts, unused gui components).
+
+## Phase 4 — Real games + camera + pygame experiment
+
+- [ ] Design input conventions (joystick = move, U/J/M = A/B/Start-ish; hold-combo to
+      quit a game instead of any-click).
+- [ ] Write 1-2 real games against the PIL stack (puzzle/menu-paced suits PIL+SPI;
+      expect ~10-20fps full-screen redraws on the Zero 1.3).
+- [ ] Camera game experiment (camera module + pivideostream are kept in the app;
+      desktop camera backend is NOT implemented — emulator would need an
+      opencv/webcam stand-in first).
+- [ ] pygame branch: swap PIL rendering for pygame Surfaces blitted to the ST7789
+      (desktop gets a real pygame window for free). Measure frame rate vs PIL on
+      hardware; migrate only if it clearly wins. Needs SDL added to the OS image.
+
+## Phase 5 — Polish / stretch
+
+- [ ] Screensaver rebrand (bouncing PillBoy logo).
+- [ ] Game metadata (icons per game in the picker; ButtonOption already supports icons).
+- [ ] High-score-free design language: games should be session-based by design (no
+      persistence exists on release images, by intent).
+- [ ] Multi-card "library" workflow docs: how to master a new card (flash release
+      image + copy game files).
+- [ ] Emulator niceties: window title shows current view, keyboard help overlay,
+      `--scale` flag (SCALE constant exists in `pillboy/emulator/desktop.py`).
+
+## Known quirks / context for a fresh session
+
+- Desktop run needs tkinter-capable python (macOS: python3.11 via python-tk@3.11).
+- The emulator keymap is lowercase-keysym only (Caps Lock breaks input).
+- Games must wait for button release on entry AND exit (see `bounce.py`
+  `_wait_for_release`) or the menu/game ping-pong instantly.
+- `Settings.HOSTNAME == "pillboy-os"` gates on-device behaviors (settings path).
+- seedsigner upstream repos live in this workspace as read-only reference; the
+  emulator concept came from `../seedsigner-emulator` (abandoned, don't copy code).
