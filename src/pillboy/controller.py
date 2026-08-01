@@ -170,7 +170,7 @@ class Controller(Singleton):
             * initial_destination: The first View to run. If None, the MainMenuView is
             used. Only used by the test suite.
         """
-        from pillboy.views import MainMenuView, BackStackView
+        from pillboy.views import MainMenuView, BackStackView, WelcomeView
         from pillboy.views.screensaver import OpeningSplashView
 
         OpeningSplashView().run()
@@ -187,7 +187,8 @@ class Controller(Singleton):
             if initial_destination:
                 next_destination = initial_destination
             else:
-                next_destination = Destination(MainMenuView)
+                # One-time controls explainer, then on to the game picker
+                next_destination = Destination(WelcomeView)
 
             while True:
                 # Destination(None) is a special case; render the Home screen

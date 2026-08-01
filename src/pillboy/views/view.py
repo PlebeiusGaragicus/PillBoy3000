@@ -180,6 +180,82 @@ class Destination:
 # Root level Views don't have a sub-module home so they live at the top level here.
 #
 #########################################################################################
+class WelcomeView(View):
+    """
+        Shown once after the boot splash: a quick diagram of the controls.
+        Any button dismisses it.
+    """
+    def run(self):
+        import time
+        from pillboy.gui.components import Fonts, GUIConstants
+        from pillboy.hardware.buttons import HardwareButtons, HardwareButtonsConstants
+        from pillboy.hardware.platform import is_raspberry_pi
+
+        buttons = HardwareButtons.get_instance()
+        draw = self.renderer.draw
+
+        title_font = Fonts.get_font(GUIConstants.get_top_nav_title_font_name(), 20)
+        body_font = Fonts.get_font(GUIConstants.get_body_font_name(), 15)
+        hint_font = Fonts.get_font(GUIConstants.get_body_font_name(), 12)
+
+        ACCENT = GUIConstants.ACCENT_COLOR
+        GRAY = "#aaaaaa"
+
+        with self.renderer.lock:
+            draw.rectangle((0, 0, self.canvas_width, self.canvas_height), fill="black")
+            draw.text((self.canvas_width // 2, 10), _("Welcome to PillBoy"),
+                      font=title_font, fill=ACCENT, anchor="mt")
+
+            rows_y = [56, 96, 136, 176]
+            glyph_cx = 34
+            text_x = 68
+
+            # Row 1: joystick d-pad cross = move
+            cy = rows_y[0]
+            draw.rectangle((glyph_cx - 5, cy - 15, glyph_cx + 5, cy + 15), fill="#444444")
+            draw.rectangle((glyph_cx - 15, cy - 5, glyph_cx + 15, cy + 5), fill="#444444")
+            draw.text((text_x, cy), _("Joystick: move"), font=body_font, fill="white", anchor="lm")
+
+            # Row 2: center press = select
+            cy = rows_y[1]
+            draw.ellipse((glyph_cx - 9, cy - 9, glyph_cx + 9, cy + 9), fill=ACCENT)
+            draw.text((text_x, cy), _("Press stick: select"), font=body_font, fill="white", anchor="lm")
+
+            # Row 3: three side buttons = game actions
+            cy = rows_y[2]
+            for i in range(3):
+                by = cy - 15 + i * 11
+                draw.rounded_rectangle((glyph_cx - 12, by, glyph_cx + 12, by + 8),
+                                       radius=3, fill="#444444")
+            draw.text((text_x, cy), _("Side buttons: actions"), font=body_font, fill="white", anchor="lm")
+
+            # Row 4: all three together = pause
+            cy = rows_y[3]
+            for i in range(3):
+                by = cy - 15 + i * 11
+                draw.rounded_rectangle((glyph_cx - 12, by, glyph_cx + 12, by + 8),
+                                       radius=3, fill=ACCENT)
+            draw.text((text_x, cy), _("All 3 together: pause"), font=body_font, fill="white", anchor="lm")
+
+            if not is_raspberry_pi():
+                hint = _("(keys: WASD / Space / U J M)")
+                draw.text((self.canvas_width // 2, 206), hint,
+                          font=hint_font, fill=GRAY, anchor="mt")
+
+            draw.text((self.canvas_width // 2, self.canvas_height - 4),
+                      _("press any button"),
+                      font=hint_font, fill=ACCENT, anchor="ms")
+
+            self.renderer.show_image()
+
+        buttons.wait_for(HardwareButtonsConstants.ALL_KEYS)
+        while buttons.has_any_input():
+            time.sleep(0.01)
+
+        return Destination(MainMenuView, clear_history=True)
+
+
+
 class MainMenuView(View):
     """
         The game picker: one button per registered game.
