@@ -78,7 +78,12 @@ Buildroot config adaptations).
 - [x] Snek (`games/snek.py`) — port of an old pygame prototype's ergonomics
       (wrapping edges, constant speed, self-collision only); rotation steering
       and rounded gradient art to keep it distinct from `snake.py`.
+- [x] Ported the 2023 card's games (`../PillBoy2023-sdcard`): Snek 1, Warp Snek,
+      Grubs, Star Saver (with its original PNG art). "1" = 2023 original,
+      "2" = written for PillBoy3000.
 - [ ] More games as inspiration strikes.
+- [ ] Possible: revive the 2023 card's manifest-driven module system for
+      games-as-data on the FAT partition (see Phase 3).
 - [x] QR loader: scan an animated QR to load a game / message / picture into RAM
       (`pillboy/qrload/`, PB1 protocol; generator webapp in `../PillBoyQR`).
       Protocol + dynamic game loading verified incl. real optical decode; the

@@ -179,6 +179,10 @@ class FontAwesomeIconConstants:
     CUBES = "\uf1b3"
     GAMEPAD = "\uf11b"
     JET_FIGHTER = "\uf0fb"
+    BUG = "\uf188"
+    ROCKET = "\uf135"
+    SLASH = "\uf715"
+    SPINNER = "\uf110"
     # NOTE: verify any new glyph actually exists in Font_Awesome_6_Free-Solid-900.otf.
     # Pro-only icons (e.g. "worm" \uf9d3) render as an empty tofu box, and a naive
     # "did it draw any pixels" check passes because the tofu box has ink of its own.
