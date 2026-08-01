@@ -278,7 +278,8 @@ class MainMenuView(View):
             # Nothing to go back to from Home; just re-run
             return Destination(MainMenuView)
 
-        return Destination(GAMES[selected_menu_num].View_cls)
+        from pillboy.games.base import GameWelcomeView
+        return Destination(GameWelcomeView, view_args=dict(game_index=selected_menu_num))
 
 
 

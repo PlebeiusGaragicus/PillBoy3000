@@ -13,6 +13,17 @@ class BounceGameView(GameView):
     BALL_RADIUS = 10
     STEER_ACCEL = 1.5
 
+    CONTROLS = [
+        ("Joystick", "WASD", "steer the ball"),
+    ]
+
+    @classmethod
+    def render_thumbnail(cls, draw, x, y, w, h):
+        r = min(w, h) // 4
+        cx = x + w // 2
+        cy = y + h // 2
+        draw.ellipse((cx - r, cy - r, cx + r, cy + r), fill="orange")
+
     def run(self):
         # The button press that launched the game is likely still held down; wait for
         # a clean release so it isn't misread as gameplay input.

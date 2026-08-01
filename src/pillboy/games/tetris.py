@@ -45,6 +45,32 @@ class TetrisGameView(GameView):
     COLS = 10
     ROWS = 20
 
+    CONTROLS = [
+        ("Joystick left/right", "A/D", "move"),
+        ("Joystick up", "W", "rotate"),
+        ("Joystick down", "S", "soft drop"),
+        ("Top button", "U", "rotate"),
+        ("Middle button", "J", "rotate back"),
+        ("Bottom button", "M", "hard drop"),
+    ]
+
+    @classmethod
+    def render_thumbnail(cls, draw, x, y, w, h):
+        # A little T + I piece vignette
+        cell = 14
+        cx = x + (w - 5 * cell) // 2
+        cy = y + (h - 3 * cell) // 2
+        for (c, r, color) in [
+            (1, 0, PIECES["T"]["color"]), (0, 1, PIECES["T"]["color"]),
+            (1, 1, PIECES["T"]["color"]), (2, 1, PIECES["T"]["color"]),
+            (4, 0, PIECES["I"]["color"]), (4, 1, PIECES["I"]["color"]),
+            (4, 2, PIECES["I"]["color"]),
+        ]:
+            px = cx + c * cell
+            py = cy + r * cell
+            draw.rectangle((px, py, px + cell - 2, py + cell - 2),
+                           fill=color, outline="black")
+
     # Input timing (seconds)
     SHIFT_DELAY = 0.17    # hold delay before left/right auto-repeat
     SHIFT_REPEAT = 0.05
