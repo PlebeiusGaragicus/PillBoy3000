@@ -67,8 +67,10 @@ Buildroot config adaptations).
       opens the shared pause menu (Resume / Quit game) — `games/base.py` GameView.
 - [x] First real game: Tetris (`games/tetris.py`) — 7-bag, wall kicks, scoring/levels,
       next-piece preview, game-over screen. Verify frame rate on real hardware.
-- [ ] More games against the PIL stack (Snake and Sudoku round out the classic
-      "decoy game" trio from seedsigner's old roadmap).
+- [x] Snake (`games/snake.py`) — absolute + relative steering, speed-up per food,
+      "push to start" ready state, game-over screen.
+- [ ] More games against the PIL stack (Sudoku completes the classic "decoy game"
+      trio from seedsigner's old roadmap).
 - [x] QR loader: scan an animated QR to load a game / message / picture into RAM
       (`pillboy/qrload/`, PB1 protocol; generator webapp in `../PillBoyQR`).
       Protocol + dynamic game loading verified incl. real optical decode; the

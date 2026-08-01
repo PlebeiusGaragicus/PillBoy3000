@@ -13,10 +13,12 @@ def _load_games() -> list[GameEntry]:
     # Import here (not at module top) so a broken game module fails at menu-build
     # time with a visible error screen instead of killing the whole app at import.
     from pillboy.games.bounce import BounceGameView
+    from pillboy.games.snake import SnakeGameView
     from pillboy.games.tetris import TetrisGameView
 
     return [
         GameEntry(display_name="Tetris", View_cls=TetrisGameView),
+        GameEntry(display_name="Snake", View_cls=SnakeGameView),
         GameEntry(display_name="Bounce", View_cls=BounceGameView),
     ]
 

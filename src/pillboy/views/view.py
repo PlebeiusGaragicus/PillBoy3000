@@ -280,7 +280,7 @@ class MainMenuView(View):
         button_data = [self.PLAY, self.SCAN, self.TOOLS, self.CAMERA]
         selected_menu_num = self.run_screen(
             MainMenuScreen,
-            title=_("Home"),
+            title=_("PillBoy"),
             button_data=button_data,
         )
 
