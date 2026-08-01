@@ -61,8 +61,10 @@ Buildroot config adaptations).
 
 - [x] Input conventions: all buttons belong to gameplay; all-three-side-buttons combo
       opens the shared pause menu (Resume / Quit game) — `games/base.py` GameView.
-- [ ] Write 1-2 real games against the PIL stack (puzzle/menu-paced suits PIL+SPI;
-      expect ~10-20fps full-screen redraws on the Zero 1.3).
+- [x] First real game: Tetris (`games/tetris.py`) — 7-bag, wall kicks, scoring/levels,
+      next-piece preview, game-over screen. Verify frame rate on real hardware.
+- [ ] More games against the PIL stack (Snake and Sudoku round out the classic
+      "decoy game" trio from seedsigner's old roadmap).
 - [ ] Camera game experiment (camera module + pivideostream are kept in the app;
       desktop camera backend is NOT implemented — emulator would need an
       opencv/webcam stand-in first).
