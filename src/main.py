@@ -39,6 +39,21 @@ def main(sys_argv=None):
 
     logger.info(f"Starting PillBoy with: {args.__dict__}")
 
+    # SIGUSR2 dumps the current canvas to a PNG. The ST7789 is write-only over SPI,
+    # so this is the only way to "screenshot" a live device (used by dev.sh screenshot).
+    import signal
+
+    def dump_screenshot(signum, frame):
+        try:
+            from pillboy.gui.renderer import Renderer
+            path = "/tmp/pillboy-screenshot.png"
+            Renderer.get_instance().canvas.save(path)
+            logger.info(f"Screenshot saved to {path}")
+        except Exception as e:
+            logger.error(f"Screenshot failed: {e}")
+
+    signal.signal(signal.SIGUSR2, dump_screenshot)
+
     from pillboy.controller import Controller
     from pillboy.hardware.platform import is_raspberry_pi
 

@@ -38,9 +38,18 @@ side buttons (top/middle/bottom).
 
 ## Run on hardware
 
-Flash a PillBoy3000-os image (see that repo). For development, flash a `-dev` image and
-rsync this repo to the device — the app auto-detects real hardware (RPi.GPIO present)
-and drives the ST7789 over SPI.
+Flash a PillBoy3000-os image (see that repo). For development, flash a `-dev` image,
+connect the Pi Zero's data micro-USB port to your Mac (one cable = power + network),
+and use `dev.sh` — the app auto-detects real hardware (RPi.GPIO present) and drives
+the ST7789 over SPI. One-time SSH setup instructions are in the `dev.sh` header.
+
+```sh
+./dev.sh sync --restart    # push working tree to the device and relaunch the app
+./dev.sh logs -f           # follow the app log live
+./dev.sh screenshot        # capture the device screen to ./screenshot.png
+./dev.sh shell             # SSH in
+./dev.sh status            # pillboy start|stop|restart|status
+```
 
 ## Layout
 
