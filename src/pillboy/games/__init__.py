@@ -14,11 +14,13 @@ def _load_games() -> list[GameEntry]:
     # time with a visible error screen instead of killing the whole app at import.
     from pillboy.games.bounce import BounceGameView
     from pillboy.games.snake import SnakeGameView
+    from pillboy.games.sudoku import SudokuGameView
     from pillboy.games.tetris import TetrisGameView
 
     return [
         GameEntry(display_name="Tetris", View_cls=TetrisGameView),
         GameEntry(display_name="Snake", View_cls=SnakeGameView),
+        GameEntry(display_name="Sudoku", View_cls=SudokuGameView),
         GameEntry(display_name="Bounce", View_cls=BounceGameView),
     ]
 

@@ -69,8 +69,10 @@ Buildroot config adaptations).
       next-piece preview, game-over screen. Verify frame rate on real hardware.
 - [x] Snake (`games/snake.py`) — absolute + relative steering, speed-up per food,
       "push to start" ready state, game-over screen.
-- [ ] More games against the PIL stack (Sudoku completes the classic "decoy game"
-      trio from seedsigner's old roadmap).
+- [x] Sudoku (`games/sudoku.py`) — completes the classic "decoy game" trio from
+      seedsigner's old roadmap. 9 verified-unique base puzzles at 3 difficulties,
+      randomized at runtime by isomorphic transform (no slow generator on-device).
+- [ ] More games as inspiration strikes.
 - [x] QR loader: scan an animated QR to load a game / message / picture into RAM
       (`pillboy/qrload/`, PB1 protocol; generator webapp in `../PillBoyQR`).
       Protocol + dynamic game loading verified incl. real optical decode; the
