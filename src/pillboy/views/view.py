@@ -320,7 +320,7 @@ class GameLibraryView(View):
                 button_text=_("Back"),
             ), skip_current_view=True)
 
-        button_data = [ButtonOption(game.display_name) for game in GAMES]
+        button_data = [ButtonOption(game.display_name, game.icon_name) for game in GAMES]
         selected_menu_num = self.run_screen(
             ButtonListScreen,
             title=_("Play"),

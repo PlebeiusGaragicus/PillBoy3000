@@ -172,9 +172,17 @@ class GUIConstants:
 class FontAwesomeIconConstants:
     ANGLE_DOWN = "\uf107"
     ANGLE_UP = "\uf106"
+    BORDER_ALL = "\uf84c"
     CAMERA = "\uf030"
     CIRCLE = "\uf111"
+    CUBES = "\uf1b3"
     GAMEPAD = "\uf11b"
+    JET_FIGHTER = "\uf0fb"
+    # NOTE: verify any new glyph actually exists in Font_Awesome_6_Free-Solid-900.otf.
+    # Pro-only icons (e.g. "worm" \uf9d3) render as an empty tofu box, and a naive
+    # "did it draw any pixels" check passes because the tofu box has ink of its own.
+    # Compare the rendered bitmap against a known-absent codepoint instead.
+    STAFF_SNAKE = "\uf71e"
     DICE = "\uf522"
     DICE_ONE = "\uf525"
     DICE_TWO = "\uf528"

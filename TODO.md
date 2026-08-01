@@ -72,6 +72,9 @@ Buildroot config adaptations).
 - [x] Sudoku (`games/sudoku.py`) — completes the classic "decoy game" trio from
       seedsigner's old roadmap. 9 verified-unique base puzzles at 3 difficulties,
       randomized at runtime by isomorphic transform (no slow generator on-device).
+- [x] Star Fighter (`games/starfighter.py`) — 3 levels: Galaga-style squadron
+      (curved fly-in, formation, dives), asteroid field, boss with a weak point
+      per cannon + health bar.
 - [ ] More games as inspiration strikes.
 - [x] QR loader: scan an animated QR to load a game / message / picture into RAM
       (`pillboy/qrload/`, PB1 protocol; generator webapp in `../PillBoyQR`).
@@ -88,7 +91,7 @@ Buildroot config adaptations).
 ## Phase 5 — Polish / stretch
 
 - [ ] Screensaver rebrand (bouncing PillBoy logo).
-- [ ] Game metadata (icons per game in the picker; ButtonOption already supports icons).
+- [x] Game metadata: per-game icons in the picker (`GameEntry.icon_name`).
 - [ ] High-score-free design language: games should be session-based by design (no
       persistence exists on release images, by intent).
 - [ ] Multi-card "library" workflow docs: how to master a new card (flash release
