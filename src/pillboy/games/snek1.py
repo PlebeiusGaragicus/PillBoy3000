@@ -27,7 +27,11 @@ from pillboy.hardware.buttons import HardwareButtonsConstants
 BORDER_WIDTH = 4
 SCREEN = 240
 FOOD_SIZE = 6
-FOOD_TOLERANCE = 40          # squared distance, as in the original
+# The original compares a SQUARED distance against this value, so the real
+# pickup radius is sqrt(40) ~= 6.3px -- just about touching. Do not square it
+# again when comparing (that mistake makes the radius 40px and food leaps
+# into the snake from across the screen).
+FOOD_TOLERANCE_SQ = 40
 SNAKE_INIT_SIZE = 9
 SNAKE_START = (20, 20)
 INIT_SPEED_X = -2
@@ -132,7 +136,7 @@ class SnekOneGameView(GameView):
 
         # Proximity pickup
         fx, fy = self.food
-        if (nx - fx) ** 2 + (ny - fy) ** 2 < FOOD_TOLERANCE ** 2:
+        if (nx - fx) ** 2 + (ny - fy) ** 2 < FOOD_TOLERANCE_SQ:
             self.score += 1
             self.food = self._new_food()
 

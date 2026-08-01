@@ -40,7 +40,8 @@ INIT_SPEED_Y = -4
 TOP_SPEED = 13
 
 FOOD_SIZE = 6
-FOOD_EATING_DISTANCE = 35     # squared distance, as in the original
+# Squared distance (see snek1.py): the real pickup radius is sqrt(35) ~= 5.9px.
+FOOD_EATING_DISTANCE_SQ = 35
 FOOD_MAX_COUNT = 25
 FOOD_LIFE_POWER = 12
 
@@ -58,7 +59,7 @@ class Food:
 
     def touched_by(self, body) -> bool:
         for (sx, sy) in body:
-            if (sx - self.x) ** 2 + (sy - self.y) ** 2 < FOOD_EATING_DISTANCE ** 2:
+            if (sx - self.x) ** 2 + (sy - self.y) ** 2 < FOOD_EATING_DISTANCE_SQ:
                 return True
         return False
 
