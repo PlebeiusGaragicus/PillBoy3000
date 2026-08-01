@@ -175,6 +175,7 @@ class FontAwesomeIconConstants:
     BORDER_ALL = "\uf84c"
     CAMERA = "\uf030"
     CIRCLE = "\uf111"
+    CIRCLE_NOTCH = "\uf1ce"
     CUBES = "\uf1b3"
     GAMEPAD = "\uf11b"
     JET_FIGHTER = "\uf0fb"

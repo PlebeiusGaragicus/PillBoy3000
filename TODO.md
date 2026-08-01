@@ -75,6 +75,9 @@ Buildroot config adaptations).
 - [x] Star Fighter (`games/starfighter.py`) — 3 levels: Galaga-style squadron
       (curved fly-in, formation, dives), asteroid field, boss with a weak point
       per cannon + health bar.
+- [x] Snek (`games/snek.py`) — port of an old pygame prototype's ergonomics
+      (wrapping edges, constant speed, self-collision only); rotation steering
+      and rounded gradient art to keep it distinct from `snake.py`.
 - [ ] More games as inspiration strikes.
 - [x] QR loader: scan an animated QR to load a game / message / picture into RAM
       (`pillboy/qrload/`, PB1 protocol; generator webapp in `../PillBoyQR`).
