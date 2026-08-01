@@ -277,7 +277,7 @@ class MainMenuView(View):
     CAMERA = ButtonOption("Camera", FontAwesomeIconConstants.CAMERA)
 
     def run(self):
-        button_data = [self.SCAN, self.PLAY, self.TOOLS, self.CAMERA]
+        button_data = [self.PLAY, self.SCAN, self.TOOLS, self.CAMERA]
         selected_menu_num = self.run_screen(
             MainMenuScreen,
             title=_("Home"),
