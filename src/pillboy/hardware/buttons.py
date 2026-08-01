@@ -157,6 +157,15 @@ class HardwareButtons(Singleton):
             return False
 
 
+    def all_pressed(self, keys: List[int]) -> bool:
+        """ Returns True only if ALL of the target keys are currently pressed """
+        for key in keys:
+            if self.GPIO.input(key) != self.GPIO.LOW:
+                return False
+        self.update_last_input_time()
+        return True
+
+
     def has_any_input(self) -> bool:
         """ Returns True if any of the keys are pressed """
         for key in HardwareButtonsConstants.ALL_KEYS:

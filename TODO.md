@@ -59,8 +59,8 @@ Buildroot config adaptations).
 
 ## Phase 4 — Real games + camera + pygame experiment
 
-- [ ] Design input conventions (joystick = move, U/J/M = A/B/Start-ish; hold-combo to
-      quit a game instead of any-click).
+- [x] Input conventions: all buttons belong to gameplay; all-three-side-buttons combo
+      opens the shared pause menu (Resume / Quit game) — `games/base.py` GameView.
 - [ ] Write 1-2 real games against the PIL stack (puzzle/menu-paced suits PIL+SPI;
       expect ~10-20fps full-screen redraws on the Zero 1.3).
 - [ ] Camera game experiment (camera module + pivideostream are kept in the app;
@@ -85,8 +85,11 @@ Buildroot config adaptations).
 
 - Desktop run needs tkinter-capable python (macOS: python3.11 via python-tk@3.11).
 - The emulator keymap is lowercase-keysym only (Caps Lock breaks input).
-- Games must wait for button release on entry AND exit (see `bounce.py`
-  `_wait_for_release`) or the menu/game ping-pong instantly.
+- Games must wait for button release on entry and around the pause menu (GameView
+  handles this: `wait_for_release()` / `check_pause_menu()`) or held presses leak
+  between menu and game and they ping-pong instantly.
+- Games claim `renderer.lock` per frame only — `Screen.display()` (pause menu) needs
+  to acquire it, so holding it across frames deadlocks.
 - `Settings.HOSTNAME == "pillboy-os"` gates on-device behaviors (settings path).
 - seedsigner upstream repos live in this workspace as read-only reference; the
   emulator concept came from `../seedsigner-emulator` (abandoned, don't copy code).

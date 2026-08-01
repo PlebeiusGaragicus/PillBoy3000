@@ -65,7 +65,12 @@ src/pillboy/emulator/        desktop backend (tkinter display + keyboard GPIO)
 
 ## Adding a game
 
-1. Create `src/pillboy/games/mygame.py` with a `View` subclass whose `run()` owns its
-   game loop (render via `self.renderer`, poll `HardwareButtons`, return
-   `Destination(BackStackView)` to exit — see `bounce.py`).
+1. Create `src/pillboy/games/mygame.py` with a `GameView` subclass (see
+   `games/base.py`) whose `run()` owns its game loop — see `bounce.py` for the
+   reference shape. Every button including the three side buttons belongs to
+   gameplay; the one reserved input is **all three side buttons pressed together**,
+   which opens the shared pause menu (Resume / Quit game). Your loop must:
+   - start with `self.wait_for_release()` (debounce the launch press)
+   - call `dest = self.check_pause_menu()` once per frame and return `dest` if set
+   - claim `self.renderer.lock` per frame around draw + show, never across frames
 2. Register it in the `GAMES` list in `src/pillboy/games/__init__.py`.
