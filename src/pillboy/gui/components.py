@@ -174,6 +174,7 @@ class FontAwesomeIconConstants:
     ANGLE_UP = "\uf106"
     CAMERA = "\uf030"
     CIRCLE = "\uf111"
+    GAMEPAD = "\uf11b"
     DICE = "\uf522"
     DICE_ONE = "\uf525"
     DICE_TWO = "\uf528"

@@ -138,6 +138,70 @@ class QRScanView(View):
 
 
 
+class CameraView(View):
+    """
+        Live camera viewfinder. Center press freezes/unfreezes the frame;
+        any other button exits. Nothing is ever saved — there's nowhere to
+        save it to.
+    """
+    FPS = 12
+
+    def run(self):
+        camera = self.controller.camera
+        try:
+            camera.start_video_stream_mode(resolution=(480, 480),
+                                           framerate=self.FPS, format="rgb")
+        except Exception:
+            return Destination(ErrorView, view_args=dict(
+                title=_("Hardware Error"),
+                status_headline=_("Cannot access camera"),
+                text=_("Check for a loose camera connection."),
+                button_text=_("Back"),
+            ), skip_current_view=True)
+
+        buttons = HardwareButtons.get_instance()
+        hint_font = Fonts.get_font(GUIConstants.get_body_font_name(), 13)
+        frozen = False
+
+        try:
+            while True:
+                if buttons.check_for_low(HardwareButtonsConstants.KEY_PRESS):
+                    frozen = not frozen
+                    while buttons.has_any_input():
+                        time.sleep(0.01)
+
+                elif buttons.check_for_low(keys=[
+                        HardwareButtonsConstants.KEY1,
+                        HardwareButtonsConstants.KEY2,
+                        HardwareButtonsConstants.KEY3]):
+                    while buttons.has_any_input():
+                        time.sleep(0.01)
+                    return Destination(BackStackView)
+
+                if frozen:
+                    time.sleep(0.05)
+                    continue
+
+                frame = camera.read_video_stream(as_image=True)
+                if frame is None:
+                    time.sleep(0.05)
+                    continue
+
+                with self.renderer.lock:
+                    preview = frame.convert("RGB").resize(
+                        (self.canvas_width, self.canvas_height))
+                    self.renderer.canvas.paste(preview, (0, 0))
+                    self.renderer.draw.text(
+                        (self.canvas_width // 2, self.canvas_height - 6),
+                        _("press stick to freeze"),
+                        font=hint_font, fill=ACCENT, anchor="ms")
+                    self.renderer.show_image()
+
+        finally:
+            camera.stop_video_stream_mode()
+
+
+
 @dataclass
 class MessageView(View):
     """Displays a received text message. Any button returns to the menu."""

@@ -75,7 +75,7 @@ src/pillboy/emulator/        desktop backend (tkinter display + keyboard GPIO)
    - claim `self.renderer.lock` per frame around draw + show, never across frames
 2. Give the class a `CONTROLS` list of `(hardware_label, keyboard_hint, action)`
    tuples and an optional `render_thumbnail(draw, x, y, w, h)` classmethod — the
-   picker routes through a per-game title screen (name + graphic + Play / How-to)
+   picker (Play) routes through a per-game title screen (name + graphic + Play / How-to)
    that renders both automatically; the pause-combo line is appended to How-to
    for free.
 3. Register it in the `GAMES` list in `src/pillboy/games/__init__.py`.

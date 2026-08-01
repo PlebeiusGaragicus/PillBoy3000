@@ -4,9 +4,11 @@ from gettext import gettext as _
 from typing import Type
 
 from pillboy.helpers.l10n import mark_for_translation as _mft
-from pillboy.gui.components import SeedSignerIconConstants
+from pillboy.gui.components import FontAwesomeIconConstants, GUIConstants, SeedSignerIconConstants
 from pillboy.gui.screens import RET_CODE__POWER_BUTTON, RET_CODE__BACK_BUTTON
-from pillboy.gui.screens.screen import BaseScreen, ButtonListScreen, ButtonOption, LargeButtonScreen, WarningScreen, ErrorScreen
+from pillboy.gui.screens.screen import (BaseScreen, ButtonListScreen, ButtonOption,
+                                        LargeButtonScreen, LargeIconStatusScreen,
+                                        MainMenuScreen, WarningScreen, ErrorScreen)
 from pillboy.models.settings import Settings, SettingsConstants
 from pillboy.models.threads import BaseThread
 
@@ -180,11 +182,17 @@ class Destination:
 # Root level Views don't have a sub-module home so they live at the top level here.
 #
 #########################################################################################
+@dataclass
 class WelcomeView(View):
     """
-        Shown once after the boot splash: a quick diagram of the controls.
-        Any button dismisses it.
+        Controls explainer: shown once after the boot splash, and reachable
+        again from Tools. Any button dismisses it.
+
+        * go_home: dismiss to the home menu (boot flow). Tools passes False so
+          it returns to the Tools menu instead.
     """
+    go_home: bool = True
+
     def run(self):
         import time
         from pillboy.gui.components import Fonts, GUIConstants
@@ -252,40 +260,120 @@ class WelcomeView(View):
         while buttons.has_any_input():
             time.sleep(0.01)
 
-        return Destination(MainMenuView, clear_history=True)
+        if self.go_home:
+            return Destination(MainMenuView, clear_history=True)
+        return Destination(BackStackView)
 
 
 
 class MainMenuView(View):
     """
-        The game picker: one button per registered game.
+        Home screen: four large buttons plus the power button, in the style of
+        the SeedSigner main menu this project forked from.
     """
-    SCAN_QR = ButtonOption("Scan QR", SeedSignerIconConstants.SCAN)
+    SCAN = ButtonOption("Scan QR", SeedSignerIconConstants.SCAN)
+    PLAY = ButtonOption("Play", FontAwesomeIconConstants.GAMEPAD)
+    TOOLS = ButtonOption("Tools", SeedSignerIconConstants.TOOLS)
+    CAMERA = ButtonOption("Camera", FontAwesomeIconConstants.CAMERA)
 
     def run(self):
-        from pillboy.games import GAMES
-
-        button_data = [ButtonOption(game.display_name) for game in GAMES] + [self.SCAN_QR]
+        button_data = [self.SCAN, self.PLAY, self.TOOLS, self.CAMERA]
         selected_menu_num = self.run_screen(
-            ButtonListScreen,
-            title=_("PillBoy"),
-            is_button_text_centered=False,
+            MainMenuScreen,
+            title=_("Home"),
             button_data=button_data,
         )
 
         if selected_menu_num == RET_CODE__POWER_BUTTON:
             return Destination(PowerOptionsView)
 
-        if selected_menu_num == RET_CODE__BACK_BUTTON:
-            # Nothing to go back to from Home; just re-run
-            return Destination(MainMenuView)
-
-        if selected_menu_num == len(GAMES):
+        if button_data[selected_menu_num] == self.SCAN:
             from pillboy.qrload.views import QRScanView
             return Destination(QRScanView)
 
+        elif button_data[selected_menu_num] == self.PLAY:
+            return Destination(GameLibraryView)
+
+        elif button_data[selected_menu_num] == self.TOOLS:
+            return Destination(ToolsMenuView)
+
+        elif button_data[selected_menu_num] == self.CAMERA:
+            from pillboy.qrload.views import CameraView
+            return Destination(CameraView)
+
+
+
+class GameLibraryView(View):
+    """
+        The game picker: one button per registered game (including any loaded
+        from a QR code this session).
+    """
+    def run(self):
+        from pillboy.games import GAMES
         from pillboy.games.base import GameWelcomeView
+
+        if not GAMES:
+            return Destination(ErrorView, view_args=dict(
+                title=_("Play"),
+                status_headline=_("No games"),
+                text=_("Scan a game QR code to load one."),
+                button_text=_("Back"),
+            ), skip_current_view=True)
+
+        button_data = [ButtonOption(game.display_name) for game in GAMES]
+        selected_menu_num = self.run_screen(
+            ButtonListScreen,
+            title=_("Play"),
+            is_button_text_centered=False,
+            show_back_button=True,
+            button_data=button_data,
+        )
+
+        if selected_menu_num == RET_CODE__BACK_BUTTON:
+            return Destination(BackStackView)
+
         return Destination(GameWelcomeView, view_args=dict(game_index=selected_menu_num))
+
+
+
+class ToolsMenuView(View):
+    """Utilities that aren't games."""
+    CONTROLS = ButtonOption("Controls", SeedSignerIconConstants.TOOLS)
+    ABOUT = ButtonOption("About", SeedSignerIconConstants.INFO)
+
+    def run(self):
+        button_data = [self.CONTROLS, self.ABOUT]
+        selected_menu_num = self.run_screen(
+            ButtonListScreen,
+            title=_("Tools"),
+            is_button_text_centered=False,
+            show_back_button=True,
+            button_data=button_data,
+        )
+
+        if selected_menu_num == RET_CODE__BACK_BUTTON:
+            return Destination(BackStackView)
+
+        if button_data[selected_menu_num] == self.CONTROLS:
+            return Destination(WelcomeView, view_args=dict(go_home=False))
+
+        return Destination(AboutView)
+
+
+
+class AboutView(View):
+    def run(self):
+        self.run_screen(
+            LargeIconStatusScreen,
+            title=_("About"),
+            status_icon_name=SeedSignerIconConstants.INFO,
+            status_color=GUIConstants.ACCENT_COLOR,
+            status_headline=_("PillBoy 3000"),
+            text=_("A tiny handheld that forgets everything when you unplug it."),
+            button_data=[ButtonOption("OK")],
+            show_back_button=False,
+        )
+        return Destination(BackStackView)
 
 
 
