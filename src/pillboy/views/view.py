@@ -260,10 +260,12 @@ class MainMenuView(View):
     """
         The game picker: one button per registered game.
     """
+    SCAN_QR = ButtonOption("Scan QR", SeedSignerIconConstants.SCAN)
+
     def run(self):
         from pillboy.games import GAMES
 
-        button_data = [ButtonOption(game.display_name) for game in GAMES]
+        button_data = [ButtonOption(game.display_name) for game in GAMES] + [self.SCAN_QR]
         selected_menu_num = self.run_screen(
             ButtonListScreen,
             title=_("PillBoy"),
@@ -277,6 +279,10 @@ class MainMenuView(View):
         if selected_menu_num == RET_CODE__BACK_BUTTON:
             # Nothing to go back to from Home; just re-run
             return Destination(MainMenuView)
+
+        if selected_menu_num == len(GAMES):
+            from pillboy.qrload.views import QRScanView
+            return Destination(QRScanView)
 
         from pillboy.games.base import GameWelcomeView
         return Destination(GameWelcomeView, view_args=dict(game_index=selected_menu_num))
