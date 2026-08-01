@@ -41,7 +41,7 @@ Buildroot config adaptations).
       setup in the `dev.sh` header. Verify: `ssh root@pillboy.local` (password `pillboy`).
 - [ ] Verify the dev loop end to end: `./dev.sh sync --restart`, `./dev.sh logs -f`,
       `./dev.sh screenshot`, and confirm the menu + Bounce run on the real screen.
-- [ ] Test the QR loader on hardware: open `../PillBoy-qr-generator/index.html`,
+- [ ] Test the QR loader on hardware: open `../PillBoyQR/index.html`,
       generate the example game, and scan it with the device's camera (Scan QR in
       the menu). This is the only untested path in the QR feature — tune
       `QRScanView.FPS`, camera resolution, and generator frame rate if it struggles.
@@ -70,7 +70,7 @@ Buildroot config adaptations).
 - [ ] More games against the PIL stack (Snake and Sudoku round out the classic
       "decoy game" trio from seedsigner's old roadmap).
 - [x] QR loader: scan an animated QR to load a game / message / picture into RAM
-      (`pillboy/qrload/`, PB1 protocol; generator webapp in `../PillBoy-qr-generator`).
+      (`pillboy/qrload/`, PB1 protocol; generator webapp in `../PillBoyQR`).
       Protocol + dynamic game loading verified incl. real optical decode; the
       on-device camera scan path is UNTESTED until hardware (see Phase 2.5).
 - [ ] Camera game experiment (camera module + pivideostream are kept in the app;
