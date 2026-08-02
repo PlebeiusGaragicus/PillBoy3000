@@ -10,9 +10,21 @@
     Two shots: a cheap pink pellet (middle button) and an expensive gold slug
     (bottom button) that does more damage per hit.
 
-    Deviation from the original: asteroids now graze your ship for a little
-    power. In the 2023 build they were drawn and fell but never actually
-    collided with anything, which left rare enemies as the only threat.
+    Deviations from the 2023 original, all deliberate:
+
+      * Asteroids graze the ship for 3 power. In the original they were drawn
+        and fell but never collided with anything, leaving the rare enemies as
+        the only threat. Their 1-5px size and fall speed are unchanged.
+      * Enemy collision uses a proper box overlap. The original tested whether
+        either of the ship's side edges sat inside the enemy's width, which
+        misses entirely when the enemy is narrower than the ship — a bug its
+        author had already flagged with a TODO.
+      * Enemies spawn fully on-screen (the original could spawn one mostly off
+        the right edge).
+      * Lists are copied before removal; the original mutated while iterating,
+        which silently skipped entries.
+
+    Gem pickup and bomb-vs-enemy hit boxes are bit-for-bit the original's.
 """
 import random
 import time
@@ -39,11 +51,12 @@ BIG_SHOT_POWER = 5
 
 
 class Asteroid:
+    # Original sizing: 1-5px specks that fall at `size` px per frame.
     def __init__(self):
-        self.size = random.randint(4, 14)
+        self.size = random.randint(1, 5)
         self.x = random.randint(0, SCREEN - self.size)
-        self.y = -self.size
-        self.speed = max(2, self.size // 2)
+        self.y = 0
+        self.speed = self.size
 
     def draw(self, draw):
         draw.ellipse((self.x, self.y, self.x + self.size, self.y + self.size),
@@ -155,10 +168,9 @@ class StarSaverGameView(GameView):
     def run(self):
         self.wait_for_release()
         self.ship = load_sprite("ship_tiny.png")
+        # Full size, as the original used it: a 55x72 enemy is deliberately
+        # imposing on a 240x240 screen.
         self.enemy_sprite = load_sprite("enemy.png")
-        # The enemy art is huge next to a 240px screen; bring it down to size
-        self.enemy_sprite = self.enemy_sprite.resize(
-            (self.enemy_sprite.width // 2, self.enemy_sprite.height // 2))
 
         while True:
             result = self._play_round()
@@ -228,7 +240,7 @@ class StarSaverGameView(GameView):
             overlap_x = (a.x < self.hero_x + hero_w and self.hero_x < a.x + a.size)
             overlap_y = (a.y < self.hero_y + hero_h and self.hero_y < a.y + a.size)
             if overlap_x and overlap_y:
-                self.power_bar.change(-a.size // 2)
+                self.power_bar.change(-3)
                 self.asteroids.remove(a)
 
         for e in self.enemies[:]:
@@ -240,7 +252,7 @@ class StarSaverGameView(GameView):
                     if e.health <= 0:
                         self.enemies.remove(e)
                         self.score += 10
-                    break
+                        break
 
     def _read_input(self):
         K = HardwareButtonsConstants
