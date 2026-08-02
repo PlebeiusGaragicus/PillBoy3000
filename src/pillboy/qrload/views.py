@@ -238,7 +238,7 @@ class MessageView(View):
 
 @dataclass
 class ImageView(View):
-    """Displays a received image (base64 PNG), centered. Any button returns."""
+    """Displays a received image (base64 JPEG/PNG), centered. Any button returns."""
     manifest: dict = None
 
     def run(self):

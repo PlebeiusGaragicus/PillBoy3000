@@ -5,7 +5,9 @@
         {"v": 1, "type": "game" | "message" | "image", "name": str, "data": str}
       - game:    data = python source defining one GameView subclass
       - message: data = plain text
-      - image:   data = base64-encoded PNG (should already fit 240x240)
+      - image:   data = base64-encoded JPEG or PNG (should already fit 240x240;
+                 the webapp sends JPEG, stepped down in quality/size to cap
+                 the transfer at ~60 QR frames)
 
     Wire encoding: JSON -> UTF-8 -> zlib deflate -> base64 -> split into chunks.
     Each QR frame carries one chunk as text:
