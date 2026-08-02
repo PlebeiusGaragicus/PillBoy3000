@@ -123,3 +123,15 @@ Buildroot config adaptations).
 - `Settings.HOSTNAME == "pillboy-os"` gates on-device behaviors (settings path).
 - seedsigner upstream repos live in this workspace as read-only reference; the
   emulator concept came from `../seedsigner-emulator` (abandoned, don't copy code).
+- OS builds (`PillBoy3000-os`): changing `PB_ARGS` between `docker compose up -d`
+  runs does NOT recreate the container — compose silently reuses the stale one with
+  its old command (an already-exited container just "completes" instantly with the
+  previous build's result). Pass `--force-recreate` (or `docker compose down` first)
+  whenever `PB_ARGS` changes.
+- OS builds: the buildroot submodule must stay pinned to the same commit
+  seedsigner-os pins (`bf2a2858`, Buildroot 2024.11.4 base). The fork's default
+  branch is an older line (numpy 1.23.5) that breaks our `opt/patches/` (written
+  against numpy 1.25.0).
+- The Pi Zero's outer micro-USB port (`PWR IN`) is power-only — the device boots
+  and runs fine from it, but never enumerates on the Mac. The dev USB-ethernet
+  link needs the inner `USB` (data) port.
