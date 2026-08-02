@@ -24,6 +24,10 @@ sync/restart/logs/screenshot/shell against a dev device at `pillboy.local`.
 
 ## Phase 2.5 — First real image build ⏳ NEXT HARDWARE STEP (needs Docker + ~1-3h)
 
+>>> Full step-by-step plan lives in `../NEXT-STEPS.md` — written to be picked up by a
+>>> fresh session. It covers the submodule, the build, likely build failures and their
+>>> fixes, flashing, USB/SSH bring-up, the dev loop, acceptance tests, and measurements.
+
 Nothing below is verified yet; expect to iterate on build errors (that's normal for
 Buildroot config adaptations).
 
