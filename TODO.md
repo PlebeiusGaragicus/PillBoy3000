@@ -105,7 +105,10 @@ Buildroot config adaptations).
 - [ ] Screensaver rebrand (bouncing PillBoy logo).
 - [x] Game metadata: per-game icons in the picker (`GameEntry.icon_name`).
 - [ ] High-score-free design language: games should be session-based by design (no
-      persistence exists on release images, by intent).
+      persistence exists on release images, by intent). NOTE: possibly superseded —
+      see `../microsd-proposal.md` (workspace root) for a thorough mount-on-demand
+      FAT32 data-partition design (camera roll, custom screensaver, persisted QR
+      games, settings) that keeps the read-only-card promises mostly intact.
 - [ ] Multi-card "library" workflow docs: how to master a new card (flash release
       image + copy game files).
 - [ ] Emulator niceties: window title shows current view, keyboard help overlay,
