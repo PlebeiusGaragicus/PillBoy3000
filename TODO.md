@@ -147,7 +147,21 @@ Buildroot config adaptations).
   10.55.0.1 on usb0 and runs a DHCP server that configures the Mac side
   (`ssh root@10.55.0.1`). WiFi dev also works on Zero W boards via `wifi.txt`
   on the boot partition (see dev.sh header).
-- The actual board on hand is a Pi Zero **W** Rev 1.1 (has WiFi/BT), not the
-  plain Zero 1.3 the docs originally claimed. The dev image already ships the
-  brcmfmac driver + firmware + wpa_supplicant, so WiFi works there; release
-  images ship none of it, keeping the radio inert.
+- The actual board on hand is a Pi Zero **W** Rev 1.1 (has WiFi/BT hardware),
+  not the plain Zero 1.3 the docs originally claimed. The dev image ships the
+  full brcmfmac/wpa_supplicant WiFi stack and reads `wpa_supplicant.conf` (or
+  `wifi.txt`) from the boot partition.
+- **This particular board's radio appears physically dead** (Aug 2026):
+  register-level verification showed WL_REG_ON high, the 32.768 kHz LPO on
+  GPCLK2 running, SDIO pins on ALT3, correct zero-w DTB and drivers — and the
+  chip never once answered on the SDIO bus, across two kernels. Likely one of
+  the deliberately de-radioed boards from the 2023 pool. Retest the WiFi path
+  on a known-good Zero W before debugging software further. Note: the GPU
+  firmware (start_x.elf) programs the LPO clock and WL_ON itself at boot — the
+  kernel needs no special support for that part (the PL011 addition stays for
+  the future Bluetooth UART).
+- Flashing a fresh dev image wipes /mnt/data: the synced app tree AND root's
+  authorized_keys live there, so after every reflash: re-push the SSH key
+  (sshpass one-liner in dev.sh header setup), then `dev.sh sync --restart`.
+  The boot partition also needs `wpa_supplicant.conf` re-copied (drop it on
+  the PILLBOYDEV volume while the card is still in the Mac after dd).
