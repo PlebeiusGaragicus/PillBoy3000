@@ -178,8 +178,8 @@ class CameraView(QRScanView):
         live preview (a PB1 animated transfer just starts collecting, with
         the per-chunk progress bar), and photos can be saved to the album.
 
-        Controls: centre = freeze/unfreeze, KEY1 = save photo (high-res
-        still), KEY3 = exit.
+        Controls: centre = take photo (high-res still, saved to the album),
+        KEY3 = exit.
     """
     FPS = 12
     DECODE_EVERY = 2           # pyzbar every Nth frame keeps preview fluid
@@ -209,7 +209,6 @@ class CameraView(QRScanView):
         hint_font = Fonts.get_font(GUIConstants.get_body_font_name(), 13)
         body_font = Fonts.get_font(GUIConstants.get_body_font_name(), 15)
         assembler = QRAssembler()
-        frozen = False
         frame = None
         frame_n = 0
         toast = None           # (text, expiry_time)
@@ -217,11 +216,6 @@ class CameraView(QRScanView):
         try:
             while True:
                 if buttons.check_for_low(HardwareButtonsConstants.KEY_PRESS):
-                    frozen = not frozen
-                    while buttons.has_any_input():
-                        time.sleep(0.01)
-
-                elif buttons.check_for_low(HardwareButtonsConstants.KEY1):
                     while buttons.has_any_input():
                         time.sleep(0.01)
                     if storage.available():
@@ -236,7 +230,6 @@ class CameraView(QRScanView):
                         name = self._save_photo(camera, frame)
                         toast = (_("Saved {}").format(name) if name
                                  else _("Save failed"), time.time() + 2)
-                        frozen = False
                     else:
                         toast = (_("No storage on this card"), time.time() + 2)
 
@@ -244,10 +237,6 @@ class CameraView(QRScanView):
                     while buttons.has_any_input():
                         time.sleep(0.01)
                     return Destination(BackStackView)
-
-                if frozen:
-                    time.sleep(0.05)
-                    continue
 
                 frame = camera.read_video_stream(as_image=True)
                 if frame is None:
@@ -289,7 +278,7 @@ class CameraView(QRScanView):
                                   toast[0], font=hint_font, fill="white", anchor="ms")
                     else:
                         draw.text((self.canvas_width // 2, self.canvas_height - 6),
-                                  _("stick: freeze · KEY1: save · KEY3: exit"),
+                                  _("press stick to snap · KEY3: exit"),
                                   font=hint_font, fill=ACCENT, anchor="ms")
                     self.renderer.show_image()
 
@@ -319,6 +308,14 @@ class CameraView(QRScanView):
                                            framerate=self.FPS, format="rgb")
         if img is None:
             return None
+        # Centre-crop square: the viewfinder is square, the screen is square —
+        # a square save fills the album view edge to edge and matches what
+        # was framed. Still ~3x the screen resolution, so zoom has detail.
+        if img.width != img.height:
+            side = min(img.width, img.height)
+            left = (img.width - side) // 2
+            top = (img.height - side) // 2
+            img = img.crop((left, top, left + side, top + side))
         try:
             return Storage.get_instance().save_image(img)
         except Exception:

@@ -90,7 +90,9 @@ class Camera(Singleton):
 
         # "Rewind" the stream to the beginning so we can read its content
         stream.seek(0)
-        return Image.open(stream).rotate(90 + self._camera_rotation)
+        # expand=True: without it, rotating a non-square capture crops the
+        # content into the original bounding box with black corners.
+        return Image.open(stream).rotate(90 + self._camera_rotation, expand=True)
 
 
     def stop_single_frame_mode(self):

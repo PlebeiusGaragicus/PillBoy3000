@@ -6,7 +6,7 @@
 
         fit view:   left/right = previous/next photo
         KEY1        zoom in  (2x steps, up to 8x)
-        KEY2        zoom out (back to fit)
+        KEY2        zoomed: zoom out · fit view: delete (centre confirms)
         zoomed:     joystick pans
         centre      reset to fit view
         KEY3        exit
@@ -48,16 +48,34 @@ class AlbumView(View):
         zoom = 1                      # 1 = fit; 2/4/8 = magnification of fit
         cx = cy = 0.5                 # pan centre in source-image fractions
         img = storage.load_image(names[index])
+        confirm_delete = False
         dirty = True
 
         while True:
             if dirty:
-                self._render(img, zoom, cx, cy,
-                             f"{index + 1}/{len(names)}  {names[index]}"
-                             + (f"  {zoom}x" if zoom > 1 else ""), font)
+                caption = (_("Delete this photo? centre = yes · any other = no")
+                           if confirm_delete else
+                           f"{index + 1}/{len(names)}  {names[index]}"
+                           + (f"  {zoom}x" if zoom > 1 else ""))
+                self._render(img, zoom, cx, cy, caption, font,
+                             warn=confirm_delete)
                 dirty = False
 
             key = buttons.wait_for(K.ALL_KEYS)
+
+            if confirm_delete:
+                while buttons.has_any_input():
+                    time.sleep(0.01)
+                confirm_delete = False
+                if key == K.KEY_PRESS:
+                    storage.delete_image(names.pop(index))
+                    if not names:
+                        return Destination(BackStackView)
+                    index = min(index, len(names) - 1)
+                    img = storage.load_image(names[index])
+                dirty = True
+                continue
+
             if key == K.KEY3:
                 while buttons.has_any_input():
                     time.sleep(0.01)
@@ -70,6 +88,9 @@ class AlbumView(View):
                 zoom //= 2
                 if zoom == 1:
                     cx = cy = 0.5
+                dirty = True
+            elif key == K.KEY2 and zoom == 1:
+                confirm_delete = True
                 dirty = True
             elif key == K.KEY_PRESS:
                 zoom, cx, cy = 1, 0.5, 0.5
@@ -94,7 +115,7 @@ class AlbumView(View):
             # Let a held key repeat-pan without requiring re-press
             time.sleep(0.02)
 
-    def _render(self, img, zoom, cx, cy, caption, font):
+    def _render(self, img, zoom, cx, cy, caption, font, warn=False):
         from PIL import Image
 
         cw, ch = self.canvas_width, self.canvas_height
@@ -120,6 +141,9 @@ class AlbumView(View):
             draw.rectangle((0, 0, cw, ch), fill="black")
             self.renderer.canvas.paste(view, ((cw - view.width) // 2,
                                               (ch - view.height) // 2))
+            if warn:
+                draw.rectangle((0, ch - 18, cw, ch), fill="black")
             draw.text((cw // 2, ch - 4), caption, font=font,
-                      fill=GUIConstants.ACCENT_COLOR, anchor="ms")
+                      fill="#ff5555" if warn else GUIConstants.ACCENT_COLOR,
+                      anchor="ms")
             self.renderer.show_image()
