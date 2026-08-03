@@ -16,9 +16,22 @@
 # ---------------------------------------------------------------------------
 # One-time connectivity setup (run on your Mac):
 #
-# 1. Connect the Pi Zero's *data* micro-USB port (inner one, labeled USB) to
-#    your Mac -- one cable powers it and carries a USB-ethernet link. Enable
-#    System Settings > Sharing > Internet Sharing for the RNDIS/Ethernet Gadget.
+# 1. Get the device on a network. Two ways -- do NOT use macOS Internet
+#    Sharing (it's unnecessary and tends to break the Mac's own internet):
+#
+#    a) USB cable: connect the Pi Zero's *data* micro-USB port (inner one,
+#       labeled USB) to your Mac -- one cable powers it and carries a
+#       USB-ethernet link. ~10 s after boot the Pi gives up waiting for a
+#       DHCP server, self-assigns 10.55.0.1, and hands your Mac an address
+#       on the gadget interface. Then:  PILLBOY_HOST=10.55.0.1 ./dev.sh ...
+#       (pillboy.local usually resolves too, via mDNS.)
+#
+#    b) WiFi (Pi Zero W / 2 W boards -- ours is a Zero W): put a `wifi.txt`
+#       onto the card's boot partition (the FAT volume, PILLBOYDEV, visible
+#       when the card is in your Mac): line 1 SSID, line 2 passphrase,
+#       optional line 3 country code. The device joins on boot; no cable,
+#       power from any charger. Find it as pillboy.local or via your
+#       router's DHCP leases.
 #
 # 2. Add an SSH keypair to the device's authorized_keys (default root
 #    password is "pillboy"):

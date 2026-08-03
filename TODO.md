@@ -102,6 +102,10 @@ Buildroot config adaptations).
 
 ## Phase 5 — Polish / stretch
 
+- [ ] Review + document what every button does in every view (home menu, games,
+      pause, camera, QR scanner). Observed on-device (Aug 2026): centre joystick
+      press does not open the QR scanner from the home menu — decide the intended
+      mapping and make it consistent. Consider an on-device controls help card.
 - [ ] Screensaver rebrand (bouncing PillBoy logo).
 - [x] Game metadata: per-game icons in the picker (`GameEntry.icon_name`).
 - [ ] High-score-free design language: games should be session-based by design (no
@@ -138,3 +142,12 @@ Buildroot config adaptations).
 - The Pi Zero's outer micro-USB port (`PWR IN`) is power-only — the device boots
   and runs fine from it, but never enumerates on the Mac. The dev USB-ethernet
   link needs the inner `USB` (data) port.
+- Don't use macOS Internet Sharing for the dev USB link — it can break the Mac's
+  own internet, and it was never needed: S35network's fallback self-assigns
+  10.55.0.1 on usb0 and runs a DHCP server that configures the Mac side
+  (`ssh root@10.55.0.1`). WiFi dev also works on Zero W boards via `wifi.txt`
+  on the boot partition (see dev.sh header).
+- The actual board on hand is a Pi Zero **W** Rev 1.1 (has WiFi/BT), not the
+  plain Zero 1.3 the docs originally claimed. The dev image already ships the
+  brcmfmac driver + firmware + wpa_supplicant, so WiFi works there; release
+  images ship none of it, keeping the radio inert.
