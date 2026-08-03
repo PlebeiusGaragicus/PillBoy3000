@@ -73,6 +73,7 @@ class QRAssembler:
     def __init__(self):
         self.total: int = None
         self.chunks: dict[int, str] = {}
+        self.last_seq: int = None  # seq of the most recently scanned frame (UI feedback)
 
     def add_frame(self, text: str) -> bool:
         """Returns True if this frame belonged to a PB1 transfer."""
@@ -92,11 +93,13 @@ class QRAssembler:
             self.reset()
         self.total = total
         self.chunks[seq] = chunk
+        self.last_seq = seq
         return True
 
     def reset(self):
         self.total = None
         self.chunks = {}
+        self.last_seq = None
 
     @property
     def num_collected(self) -> int:
