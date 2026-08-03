@@ -225,6 +225,14 @@ class CameraView(QRScanView):
                     while buttons.has_any_input():
                         time.sleep(0.01)
                     if storage.available():
+                        with self.renderer.lock:
+                            self.renderer.draw.rectangle(
+                                (0, self.canvas_height - 22, self.canvas_width,
+                                 self.canvas_height), fill="black")
+                            self.renderer.draw.text(
+                                (self.canvas_width // 2, self.canvas_height - 6),
+                                _("Saving…"), font=hint_font, fill="white", anchor="ms")
+                            self.renderer.show_image()
                         name = self._save_photo(camera, frame)
                         toast = (_("Saved {}").format(name) if name
                                  else _("Save failed"), time.time() + 2)
@@ -247,7 +255,11 @@ class CameraView(QRScanView):
                     continue
 
                 frame_n += 1
-                if pyzbar and frame_n % self.DECODE_EVERY == 0:
+                # Idle: sample every Nth frame to keep the preview fluid.
+                # Transfer in progress: decode EVERY frame — a skipped frame
+                # is a missed chunk that costs a whole loop pass to recover.
+                scanning = assembler.total is not None
+                if pyzbar and (scanning or frame_n % self.DECODE_EVERY == 0):
                     for code in pyzbar.decode(frame.convert("L")):
                         try:
                             assembler.add_frame(code.data.decode("utf-8"))
@@ -292,6 +304,9 @@ class CameraView(QRScanView):
         try:
             camera.stop_video_stream_mode()
             camera.start_single_frame_mode(resolution=self.CAPTURE_RESOLUTION)
+            # Let auto-exposure converge in the new mode; capturing straight
+            # away produces severely underexposed frames.
+            time.sleep(2.0)
             img = camera.capture_frame()
         except Exception:
             img = preview_frame
