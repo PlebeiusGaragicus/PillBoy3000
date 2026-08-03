@@ -104,44 +104,43 @@ class QRScanView(View):
             camera.stop_video_stream_mode()
 
 
-    # Chunk grid: one cell per QR frame, so on the second pass of the loop you
-    # can see exactly which frames are still missing and how close you are.
-    GRID_COLS = 20          # cells per row (240px wide -> 12px cells)
-    GRID_CELL_LIMIT = 100   # beyond this, cells get too small; fall back to a bar
-    MISSING_COLOR = "#777777"
-    ACTIVE_COLOR = "#ffd60a"  # the frame scanned most recently
+    # Per-chunk progress: a single-row segmented bar, same small footprint as a
+    # plain progress bar, but each segment is one QR frame so on the second
+    # pass of the loop you can see exactly which frames are still missing.
+    MISSING_COLOR = "#3a3a3a"
+    ACTIVE_COLOR = "#ffd60a"   # the frame scanned most recently
+    BAR_HEIGHT = 8
+    SEGMENT_LIMIT = 200        # ~1px segments; beyond this show a plain bar
 
     def _draw_progress(self, draw, assembler, font):
         total = assembler.total
-        if total > self.GRID_CELL_LIMIT:
+        bar_top = self.canvas_height - 28
+        draw.rectangle((0, bar_top - 4, self.canvas_width, self.canvas_height),
+                       fill="black")
+        if total > self.SEGMENT_LIMIT:
             pct = assembler.num_collected / total
-            draw.rectangle((0, self.canvas_height - 28,
-                            self.canvas_width, self.canvas_height), fill="black")
-            draw.rectangle((0, self.canvas_height - 28,
-                            int(self.canvas_width * pct), self.canvas_height - 24),
-                           fill=ACCENT)
+            draw.rectangle((0, bar_top, self.canvas_width, bar_top + self.BAR_HEIGHT),
+                           fill=self.MISSING_COLOR)
+            draw.rectangle((0, bar_top, int(self.canvas_width * pct),
+                            bar_top + self.BAR_HEIGHT), fill=ACCENT)
         else:
-            cols = min(total, self.GRID_COLS)
-            rows = -(-total // cols)
-            cell = min(12, self.canvas_width // cols)
-            x0 = (self.canvas_width - cols * cell) // 2
-            top = self.canvas_height - rows * cell - 24
-            draw.rectangle((0, top - 4, self.canvas_width, self.canvas_height),
-                           fill="black")
+            # Gaps between segments only when there's room for them
+            gap = 1 if self.canvas_width / total >= 3 else 0
             for i in range(total):
-                r, c = divmod(i, cols)
-                x = x0 + c * cell
-                y = top + r * cell
-                box = (x + 1, y + 1, x + cell - 2, y + cell - 2)
+                x0 = round(i * self.canvas_width / total)
+                x1 = round((i + 1) * self.canvas_width / total) - gap
                 seq = i + 1
                 if seq == assembler.last_seq:
-                    # White border so it pops against the orange collected cells
-                    draw.rectangle(box, fill=self.ACTIVE_COLOR, outline="white")
+                    # Taller + yellow so the sweep is visible at 1-4px widths
+                    draw.rectangle((x0, bar_top - 3, x1, bar_top + self.BAR_HEIGHT),
+                                   fill=self.ACTIVE_COLOR)
                 elif seq in assembler.chunks:
-                    draw.rectangle(box, fill=ACCENT)
+                    draw.rectangle((x0, bar_top, x1, bar_top + self.BAR_HEIGHT),
+                                   fill=ACCENT)
                 else:
-                    draw.rectangle(box, outline=self.MISSING_COLOR)
-        draw.text((self.canvas_width // 2, self.canvas_height - 12),
+                    draw.rectangle((x0, bar_top, x1, bar_top + self.BAR_HEIGHT),
+                                   fill=self.MISSING_COLOR)
+        draw.text((self.canvas_width // 2, self.canvas_height - 10),
                   _("{}/{} chunks").format(assembler.num_collected, total),
                   font=font, fill="white", anchor="mm")
 
