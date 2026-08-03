@@ -172,15 +172,25 @@ class QRScanView(View):
 
 
 
-class CameraView(View):
+class CameraView(QRScanView):
     """
-        Live camera viewfinder. Center press freezes/unfreezes the frame;
-        any other button exits. Nothing is ever saved — there's nowhere to
-        save it to.
+        Unified viewfinder, phone-style: QR codes are auto-detected in the
+        live preview (a PB1 animated transfer just starts collecting, with
+        the per-chunk progress bar), and photos can be saved to the album.
+
+        Controls: centre = freeze/unfreeze, KEY1 = save photo (high-res
+        still), KEY3 = exit.
     """
     FPS = 12
+    DECODE_EVERY = 2           # pyzbar every Nth frame keeps preview fluid
+    CAPTURE_RESOLUTION = (1024, 768)
 
     def run(self):
+        try:
+            from pyzbar import pyzbar
+        except Exception:
+            pyzbar = None      # camera still works, QR detection just off
+
         camera = self.controller.camera
         try:
             camera.start_video_stream_mode(resolution=(480, 480),
@@ -193,9 +203,16 @@ class CameraView(View):
                 button_text=_("Back"),
             ), skip_current_view=True)
 
+        from pillboy.storage import Storage
+        storage = Storage.get_instance()
         buttons = HardwareButtons.get_instance()
         hint_font = Fonts.get_font(GUIConstants.get_body_font_name(), 13)
+        body_font = Fonts.get_font(GUIConstants.get_body_font_name(), 15)
+        assembler = QRAssembler()
         frozen = False
+        frame = None
+        frame_n = 0
+        toast = None           # (text, expiry_time)
 
         try:
             while True:
@@ -204,10 +221,18 @@ class CameraView(View):
                     while buttons.has_any_input():
                         time.sleep(0.01)
 
-                elif buttons.check_for_low(keys=[
-                        HardwareButtonsConstants.KEY1,
-                        HardwareButtonsConstants.KEY2,
-                        HardwareButtonsConstants.KEY3]):
+                elif buttons.check_for_low(HardwareButtonsConstants.KEY1):
+                    while buttons.has_any_input():
+                        time.sleep(0.01)
+                    if storage.available():
+                        name = self._save_photo(camera, frame)
+                        toast = (_("Saved {}").format(name) if name
+                                 else _("Save failed"), time.time() + 2)
+                        frozen = False
+                    else:
+                        toast = (_("No storage on this card"), time.time() + 2)
+
+                elif buttons.check_for_low(keys=[HardwareButtonsConstants.KEY3]):
                     while buttons.has_any_input():
                         time.sleep(0.01)
                     return Destination(BackStackView)
@@ -221,18 +246,68 @@ class CameraView(View):
                     time.sleep(0.05)
                     continue
 
+                frame_n += 1
+                if pyzbar and frame_n % self.DECODE_EVERY == 0:
+                    for code in pyzbar.decode(frame.convert("L")):
+                        try:
+                            assembler.add_frame(code.data.decode("utf-8"))
+                        except UnicodeDecodeError:
+                            continue
+
+                if assembler.is_complete:
+                    try:
+                        manifest = assembler.assemble()
+                    except QRProtocolError as e:
+                        return Destination(ErrorView, view_args=dict(
+                            status_headline=_("Bad transfer"),
+                            text=str(e),
+                            button_text=_("Back"),
+                        ))
+                    return self._route(manifest)
+
                 with self.renderer.lock:
                     preview = frame.convert("RGB").resize(
                         (self.canvas_width, self.canvas_height))
                     self.renderer.canvas.paste(preview, (0, 0))
-                    self.renderer.draw.text(
-                        (self.canvas_width // 2, self.canvas_height - 6),
-                        _("press stick to freeze"),
-                        font=hint_font, fill=ACCENT, anchor="ms")
+                    draw = self.renderer.draw
+                    if assembler.total:
+                        self._draw_progress(draw, assembler, body_font)
+                    elif toast and time.time() < toast[1]:
+                        draw.text((self.canvas_width // 2, self.canvas_height - 6),
+                                  toast[0], font=hint_font, fill="white", anchor="ms")
+                    else:
+                        draw.text((self.canvas_width // 2, self.canvas_height - 6),
+                                  _("stick: freeze · KEY1: save · KEY3: exit"),
+                                  font=hint_font, fill=ACCENT, anchor="ms")
                     self.renderer.show_image()
 
         finally:
             camera.stop_video_stream_mode()
+
+    def _save_photo(self, camera, preview_frame):
+        """High-res still via single-frame mode; falls back to the preview
+        frame if the mode switch fails. Returns filename or None."""
+        from pillboy.storage import Storage
+        img = None
+        try:
+            camera.stop_video_stream_mode()
+            camera.start_single_frame_mode(resolution=self.CAPTURE_RESOLUTION)
+            img = camera.capture_frame()
+        except Exception:
+            img = preview_frame
+        finally:
+            try:
+                camera.stop_single_frame_mode()
+            except Exception:
+                pass
+            camera.start_video_stream_mode(resolution=(480, 480),
+                                           framerate=self.FPS, format="rgb")
+        if img is None:
+            return None
+        try:
+            return Storage.get_instance().save_image(img)
+        except Exception:
+            return None
 
 
 
@@ -272,11 +347,15 @@ class MessageView(View):
 
 @dataclass
 class ImageView(View):
-    """Displays a received image (base64 JPEG/PNG), centered. Any button returns."""
+    """
+        Displays a received image (base64 JPEG/PNG), centered.
+        KEY1 saves it to the album (when storage exists); any other button returns.
+    """
     manifest: dict = None
 
     def run(self):
         from PIL import Image
+        from pillboy.storage import Storage
 
         try:
             img = Image.open(io.BytesIO(base64.b64decode(self.manifest["data"]))).convert("RGB")
@@ -287,16 +366,37 @@ class ImageView(View):
                 button_text=_("Back"),
             ), skip_current_view=True)
 
-        img.thumbnail((self.canvas_width, self.canvas_height))
+        storage = Storage.get_instance()
+        shown = img.copy()
+        shown.thumbnail((self.canvas_width, self.canvas_height))
+        hint_font = Fonts.get_font(GUIConstants.get_body_font_name(), 12)
+        footer = _("KEY1: save · any other button: back") if storage.available() else ""
 
-        with self.renderer.lock:
-            self.renderer.draw.rectangle(
-                (0, 0, self.canvas_width, self.canvas_height), fill="black")
-            self.renderer.canvas.paste(
-                img,
-                ((self.canvas_width - img.width) // 2,
-                 (self.canvas_height - img.height) // 2))
-            self.renderer.show_image()
+        def draw_screen(note=None):
+            with self.renderer.lock:
+                self.renderer.draw.rectangle(
+                    (0, 0, self.canvas_width, self.canvas_height), fill="black")
+                self.renderer.canvas.paste(
+                    shown,
+                    ((self.canvas_width - shown.width) // 2,
+                     (self.canvas_height - shown.height) // 2))
+                if note or footer:
+                    self.renderer.draw.text(
+                        (self.canvas_width // 2, self.canvas_height - 4),
+                        note or footer, font=hint_font, fill=ACCENT, anchor="ms")
+                self.renderer.show_image()
 
-        _wait_any_button_then_release()
-        return Destination(BackStackView)
+        draw_screen()
+        buttons = HardwareButtons.get_instance()
+        while True:
+            key = buttons.wait_for(HardwareButtonsConstants.ALL_KEYS)
+            while buttons.has_any_input():
+                time.sleep(0.01)
+            if key == HardwareButtonsConstants.KEY1 and storage.available():
+                try:
+                    name = storage.save_image(img)
+                    draw_screen(_("Saved {}").format(name))
+                except Exception:
+                    draw_screen(_("Save failed"))
+                continue
+            return Destination(BackStackView)

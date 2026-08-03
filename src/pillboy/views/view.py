@@ -271,13 +271,15 @@ class MainMenuView(View):
         Home screen: four large buttons plus the power button, in the style of
         the SeedSigner main menu this project forked from.
     """
-    SCAN = ButtonOption("Scan QR", SeedSignerIconConstants.SCAN)
     PLAY = ButtonOption("Play", FontAwesomeIconConstants.GAMEPAD)
-    TOOLS = ButtonOption("Tools", SeedSignerIconConstants.TOOLS)
     CAMERA = ButtonOption("Camera", FontAwesomeIconConstants.CAMERA)
+    ALBUM = ButtonOption("Album", FontAwesomeIconConstants.IMAGES)
+    TOOLS = ButtonOption("Tools", SeedSignerIconConstants.TOOLS)
 
     def run(self):
-        button_data = [self.PLAY, self.SCAN, self.TOOLS, self.CAMERA]
+        # The Camera tile is also the QR loader: the viewfinder auto-detects
+        # PB1 animated transfers, phone-style.
+        button_data = [self.PLAY, self.CAMERA, self.ALBUM, self.TOOLS]
         selected_menu_num = self.run_screen(
             MainMenuScreen,
             title=_("PillBoy"),
@@ -287,19 +289,19 @@ class MainMenuView(View):
         if selected_menu_num == RET_CODE__POWER_BUTTON:
             return Destination(PowerOptionsView)
 
-        if button_data[selected_menu_num] == self.SCAN:
-            from pillboy.qrload.views import QRScanView
-            return Destination(QRScanView)
-
-        elif button_data[selected_menu_num] == self.PLAY:
+        if button_data[selected_menu_num] == self.PLAY:
             return Destination(GameLibraryView)
-
-        elif button_data[selected_menu_num] == self.TOOLS:
-            return Destination(ToolsMenuView)
 
         elif button_data[selected_menu_num] == self.CAMERA:
             from pillboy.qrload.views import CameraView
             return Destination(CameraView)
+
+        elif button_data[selected_menu_num] == self.ALBUM:
+            from pillboy.views.album import AlbumView
+            return Destination(AlbumView)
+
+        elif button_data[selected_menu_num] == self.TOOLS:
+            return Destination(ToolsMenuView)
 
 
 
