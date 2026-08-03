@@ -9,8 +9,8 @@ from typing import Any, List, Tuple
 
 from pillboy.helpers.l10n import mark_for_translation as _mft
 from pillboy.gui.components import (GUIConstants,
-    BaseComponent, Button, Icon, IconButton, LargeIconButton,
-    SeedSignerIconConstants, TopNav, TextArea, load_image)
+    BaseComponent, Button, FontAwesomeIconConstants, Icon, IconButton,
+    LargeIconButton, SeedSignerIconConstants, TopNav, TextArea, load_image)
 from pillboy.gui.keyboard import Keyboard, TextEntryDisplay
 from pillboy.hardware.buttons import HardwareButtonsConstants, HardwareButtons
 from pillboy.models.settings import SettingsConstants
@@ -1155,3 +1155,18 @@ class MainMenuScreen(LargeButtonScreen):
     title_font_size: int = 26
     show_back_button: bool = False
     show_power_button: bool = True
+
+    def __post_init__(self):
+        super().__post_init__()
+        # WiFi status indicator, top-left (mirrors the power button top-right).
+        # Only shown when a wireless link is actually up; boards without a
+        # radio (or with it disabled) never see it.
+        from pillboy.helpers import network
+        if network.wlan_connected():
+            self.components.append(Icon(
+                screen_x=GUIConstants.EDGE_PADDING,
+                screen_y=(GUIConstants.TOP_NAV_HEIGHT - GUIConstants.ICON_FONT_SIZE) // 2,
+                icon_name=FontAwesomeIconConstants.WIFI,
+                icon_size=GUIConstants.ICON_FONT_SIZE - 4,
+                icon_color=GUIConstants.ACCENT_COLOR,
+            ))

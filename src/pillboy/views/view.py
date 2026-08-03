@@ -338,11 +338,12 @@ class GameLibraryView(View):
 
 class ToolsMenuView(View):
     """Utilities that aren't games."""
+    BITCOIN = ButtonOption("Bitcoin", SeedSignerIconConstants.BITCOIN_ALT)
     CONTROLS = ButtonOption("Controls", SeedSignerIconConstants.TOOLS)
     ABOUT = ButtonOption("About", SeedSignerIconConstants.INFO)
 
     def run(self):
-        button_data = [self.CONTROLS, self.ABOUT]
+        button_data = [self.BITCOIN, self.CONTROLS, self.ABOUT]
         selected_menu_num = self.run_screen(
             ButtonListScreen,
             title=_("Tools"),
@@ -353,6 +354,10 @@ class ToolsMenuView(View):
 
         if selected_menu_num == RET_CODE__BACK_BUTTON:
             return Destination(BackStackView)
+
+        if button_data[selected_menu_num] == self.BITCOIN:
+            from pillboy.views.bitcoin import BitcoinView
+            return Destination(BitcoinView)
 
         if button_data[selected_menu_num] == self.CONTROLS:
             return Destination(WelcomeView, view_args=dict(go_home=False))
