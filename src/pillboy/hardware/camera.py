@@ -27,18 +27,45 @@ class Camera(Singleton):
         return cls._instance
 
 
-    def start_video_stream_mode(self, resolution=(512, 384), framerate=12, format="bgr"):
+    def start_video_stream_mode(self, resolution=(512, 384), framerate=12, format="bgr",
+                                capture_resolution=None):
+        """
+            capture_resolution: optional higher camera resolution; preview
+            frames are GPU-downscaled to `resolution` and capture_still()
+            returns full-resolution frames from the same running camera.
+        """
         from picamera import PiCameraError
         from pillboy.hardware.pivideostream import PiVideoStream
         if self._video_stream is not None:
             self.stop_video_stream_mode()
 
         try:
-            self._video_stream = PiVideoStream(resolution=resolution,framerate=framerate, format=format)
+            if capture_resolution:
+                self._video_stream = PiVideoStream(resolution=capture_resolution,
+                                                   framerate=framerate, format=format,
+                                                   resize=resolution)
+            else:
+                self._video_stream = PiVideoStream(resolution=resolution,
+                                                   framerate=framerate, format=format)
             self._video_stream.start()
         except PiCameraError:
             # This error most often occurs because the camera connection is loose
             raise CameraConnectionError()
+
+
+    def capture_still(self):
+        """
+            Full-resolution still from the RUNNING video stream camera — no
+            mode switch, no exposure re-convergence, no stale frames: the
+            sensor is already live and metered, and the still port captures
+            the current scene.
+        """
+        if not self._video_stream:
+            raise Exception("Must call start_video_stream first.")
+        stream = io.BytesIO()
+        self._video_stream.camera.capture(stream, format='jpeg', use_video_port=False)
+        stream.seek(0)
+        return Image.open(stream).rotate(90 + self._camera_rotation, expand=True)
 
 
     def read_video_stream(self, as_image=False):

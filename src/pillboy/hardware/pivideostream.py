@@ -10,14 +10,17 @@ logger = logging.getLogger(__name__)
 
 # Modified from: https://github.com/jrosebr1/imutils
 class PiVideoStream:
-	def __init__(self, resolution=(320, 240), framerate=32, format="bgr", **kwargs):
-		# initialize the camera
+	def __init__(self, resolution=(320, 240), framerate=32, format="bgr", resize=None, **kwargs):
+		# initialize the camera. `resolution` is the camera/sensor resolution;
+		# when `resize` is given, streamed frames are GPU-downscaled to it
+		# (cheap), letting a high-res camera feed a low-res preview loop while
+		# still stills can be captured at full resolution from self.camera.
 		self.camera = PiCamera(resolution=resolution, framerate=framerate, **kwargs)
 
 		# initialize the stream
-		self.rawCapture = PiRGBArray(self.camera, size=resolution)
+		self.rawCapture = PiRGBArray(self.camera, size=resize or resolution)
 		self.stream = self.camera.capture_continuous(self.rawCapture,
-			format=format, use_video_port=True)
+			format=format, use_video_port=True, resize=resize)
 
 		# initialize the frame and the variable used to indicate
 		# if the thread should be stopped

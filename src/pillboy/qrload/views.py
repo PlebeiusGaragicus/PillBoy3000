@@ -181,9 +181,12 @@ class CameraView(QRScanView):
         Controls: centre = take photo (high-res still, saved to the album),
         KEY3 = exit.
     """
-    FPS = 12
+    FPS = 10
     DECODE_EVERY = 2           # pyzbar every Nth frame keeps preview fluid
-    CAPTURE_RESOLUTION = (1024, 768)
+    # Camera runs at 960x960 (fits the V1 sensor's binned mode); the preview
+    # loop gets GPU-downscaled 480x480 frames, and stills capture at full
+    # resolution from the live stream — no mode switching.
+    CAPTURE_RESOLUTION = (960, 960)
 
     def run(self):
         try:
@@ -194,7 +197,8 @@ class CameraView(QRScanView):
         camera = self.controller.camera
         try:
             camera.start_video_stream_mode(resolution=(480, 480),
-                                           framerate=self.FPS, format="rgb")
+                                           framerate=self.FPS, format="rgb",
+                                           capture_resolution=self.CAPTURE_RESOLUTION)
         except Exception:
             return Destination(ErrorView, view_args=dict(
                 title=_("Hardware Error"),
@@ -212,6 +216,11 @@ class CameraView(QRScanView):
         frame = None
         frame_n = 0
         toast = None           # (text, expiry_time)
+
+        # Debounce entry: the centre press that selected the Camera tile can
+        # still be held — without this it immediately "takes a photo".
+        while buttons.has_any_input():
+            time.sleep(0.01)
 
         try:
             while True:
@@ -286,26 +295,16 @@ class CameraView(QRScanView):
             camera.stop_video_stream_mode()
 
     def _save_photo(self, camera, preview_frame):
-        """High-res still via single-frame mode; falls back to the preview
-        frame if the mode switch fails. Returns filename or None."""
+        """High-res still straight off the running stream (already exposed,
+        current scene). Falls back to the preview frame only if the still
+        port itself fails. Returns filename or None."""
+        import logging
         from pillboy.storage import Storage
-        img = None
         try:
-            camera.stop_video_stream_mode()
-            camera.start_single_frame_mode(resolution=self.CAPTURE_RESOLUTION)
-            # Let auto-exposure converge in the new mode; capturing straight
-            # away produces severely underexposed frames.
-            time.sleep(2.0)
-            img = camera.capture_frame()
+            img = camera.capture_still()
         except Exception:
+            logging.getLogger(__name__).exception("capture_still failed; using preview frame")
             img = preview_frame
-        finally:
-            try:
-                camera.stop_single_frame_mode()
-            except Exception:
-                pass
-            camera.start_video_stream_mode(resolution=(480, 480),
-                                           framerate=self.FPS, format="rgb")
         if img is None:
             return None
         # Centre-crop square: the viewfinder is square, the screen is square —
