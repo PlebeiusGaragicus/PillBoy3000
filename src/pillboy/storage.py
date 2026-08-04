@@ -56,9 +56,27 @@ class Storage:
         self._pending_counter = 0
         logger.info(f"Storage backend: {self.backend}")
 
+    @staticmethod
+    def _sd_partition_present() -> bool:
+        """True when SD_DEVICE carries the PILLBOY-SD FAT filesystem (label
+        sniffed from the boot sector at the FAT16 and FAT32 offsets)."""
+        try:
+            with open(SD_DEVICE, "rb") as f:
+                sector = f.read(512)
+            return (sector[43:54] == b"PILLBOY-SD " or
+                    sector[71:82] == b"PILLBOY-SD ")
+        except OSError:
+            return False
+
     def _resolve_backend(self) -> str:
         if not is_raspberry_pi():
             return "desktop"
+        # Prefer the PILLBOY-SD partition: both release and (three-partition)
+        # dev cards carry it at mmcblk0p2, and it's the code path release
+        # uses. Old two-partition dev cards (ext4 at p2) fail the label sniff
+        # and fall back to the always-mounted dev-data directory.
+        if self._sd_partition_present():
+            return "ondemand"
         if os.path.ismount(DEV_DATA_DIR):
             return "devdata"
         if os.path.exists(SD_DEVICE):
