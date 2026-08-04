@@ -277,6 +277,11 @@ class CameraView(QRScanView):
                         ))
                     return self._route(manifest)
 
+                # During a transfer, render the preview only every other frame:
+                # the SPI blit + resize costs real time that decoding needs.
+                if scanning and frame_n % 2:
+                    continue
+
                 with self.renderer.lock:
                     preview = frame.convert("RGB").resize(
                         (self.canvas_width, self.canvas_height))
