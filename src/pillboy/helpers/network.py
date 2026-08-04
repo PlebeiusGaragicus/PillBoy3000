@@ -6,8 +6,18 @@
     desktop emulator has no /sys at all. Everything here degrades to
     False/None in those cases -- callers hide their UI accordingly.
 """
-import json
-import urllib.request
+import os
+
+# NOTE: urllib/json are imported lazily inside fetch_json. Release images
+# strip the un-imported halves of the stdlib (email/http/xml — see
+# pi0/board/post-build.sh), so a module-level `import urllib.request` makes
+# the whole app crash at boot on release. wlan_connected() must stay
+# importable everywhere.
+
+
+def wlan_exists(iface: str = "wlan0") -> bool:
+    """True when the wireless interface exists at all (radio present + driver)."""
+    return os.path.exists(f"/sys/class/net/{iface}")
 
 
 def wlan_connected(iface: str = "wlan0") -> bool:
@@ -21,6 +31,8 @@ def wlan_connected(iface: str = "wlan0") -> bool:
 
 def fetch_json(url: str, timeout: float = 6.0):
     """GET a small JSON (or bare-number) API response. Raises on failure."""
+    import json
+    import urllib.request
     req = urllib.request.Request(url, headers={"User-Agent": "PillBoy3000"})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return json.loads(resp.read().decode())

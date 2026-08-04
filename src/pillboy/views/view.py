@@ -345,7 +345,14 @@ class ToolsMenuView(View):
     ABOUT = ButtonOption("About", SeedSignerIconConstants.INFO)
 
     def run(self):
-        button_data = [self.BITCOIN, self.CONTROLS, self.ABOUT]
+        # Bitcoin needs internet: only offer it where a wireless interface
+        # exists (dev image on a radio-equipped board) or on the desktop
+        # emulator. Release images have no network stack at all.
+        from pillboy.hardware.platform import is_raspberry_pi
+        from pillboy.helpers.network import wlan_exists
+        button_data = [self.CONTROLS, self.ABOUT]
+        if wlan_exists() or not is_raspberry_pi():
+            button_data.insert(0, self.BITCOIN)
         selected_menu_num = self.run_screen(
             ButtonListScreen,
             title=_("Tools"),
