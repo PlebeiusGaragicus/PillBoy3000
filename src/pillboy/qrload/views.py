@@ -227,20 +227,22 @@ class CameraView(QRScanView):
                 if buttons.check_for_low(HardwareButtonsConstants.KEY_PRESS):
                     while buttons.has_any_input():
                         time.sleep(0.01)
-                    if storage.available():
-                        with self.renderer.lock:
-                            self.renderer.draw.rectangle(
-                                (0, self.canvas_height - 22, self.canvas_width,
-                                 self.canvas_height), fill="black")
-                            self.renderer.draw.text(
-                                (self.canvas_width // 2, self.canvas_height - 6),
-                                _("Saving…"), font=hint_font, fill="white", anchor="ms")
-                            self.renderer.show_image()
-                        name = self._save_photo(camera, frame)
-                        toast = (_("Saved {}").format(name) if name
-                                 else _("Save failed"), time.time() + 2)
+                    with self.renderer.lock:
+                        self.renderer.draw.rectangle(
+                            (0, self.canvas_height - 22, self.canvas_width,
+                             self.canvas_height), fill="black")
+                        self.renderer.draw.text(
+                            (self.canvas_width // 2, self.canvas_height - 6),
+                            _("Saving…"), font=hint_font, fill="white", anchor="ms")
+                        self.renderer.show_image()
+                    result = self._save_photo(camera, frame)
+                    if result is None:
+                        text = _("Save failed")
                     else:
-                        toast = (_("No storage on this card"), time.time() + 2)
+                        name, staged = result
+                        text = (_("No card — {} kept in RAM").format(name)
+                                if staged else _("Saved {}").format(name))
+                    toast = (text, time.time() + 2)
 
                 elif buttons.check_for_low(keys=[HardwareButtonsConstants.KEY3]):
                     while buttons.has_any_input():
@@ -297,7 +299,7 @@ class CameraView(QRScanView):
     def _save_photo(self, camera, preview_frame):
         """High-res still straight off the running stream (already exposed,
         current scene). Falls back to the preview frame only if the still
-        port itself fails. Returns filename or None."""
+        port itself fails. Returns (name, staged) or None."""
         import logging
         from pillboy.storage import Storage
         try:
@@ -405,8 +407,9 @@ class ImageView(View):
                 time.sleep(0.01)
             if key == HardwareButtonsConstants.KEY1 and storage.available():
                 try:
-                    name = storage.save_image(img)
-                    draw_screen(_("Saved {}").format(name))
+                    name, staged = storage.save_image(img)
+                    draw_screen(_("No card — {} kept in RAM").format(name)
+                                if staged else _("Saved {}").format(name))
                 except Exception:
                     draw_screen(_("Save failed"))
                 continue

@@ -45,8 +45,15 @@ class Storage:
             cls._instance = cls()
         return cls._instance
 
+    MAX_PENDING = 20   # RAM-staged photos (~2.6MB each at 960px) before refusing
+
     def __init__(self):
         self.backend = self._resolve_backend()
+        # RAM staging: photos taken while the card is out live here (ordered
+        # [(virtual_name, PIL image), ...]) and flush to the card at the next
+        # successful write. They are lost at power-off — the UI says so.
+        self._pending = []
+        self._pending_counter = 0
         logger.info(f"Storage backend: {self.backend}")
 
     def _resolve_backend(self) -> str:
@@ -59,7 +66,18 @@ class Storage:
         return "none"
 
     def available(self) -> bool:
-        return self.backend != "none"
+        # RAM staging means saving is always possible; "none" only shapes
+        # where the bytes end up. Kept for callers that want to phrase UI.
+        return True
+
+    def _reprobe(self):
+        """A card can appear/disappear at runtime; re-resolve lazily."""
+        if self.backend in ("none", "ondemand"):
+            self.backend = self._resolve_backend()
+
+    @property
+    def pending_count(self) -> int:
+        return len(self._pending)
 
     # --- mounting -----------------------------------------------------------
 
@@ -101,38 +119,86 @@ class Storage:
 
     # --- album API ----------------------------------------------------------
 
-    def save_image(self, img, quality: int = 90) -> str:
-        """Save a PIL image as the next IMG_NNNN.jpg. Returns the filename."""
-        with self._album_dir(write=True) as d:
-            nums = [int(m.group(1)) for f in os.listdir(d)
-                    if (m := _IMG_RE.match(f))]
-            name = f"IMG_{(max(nums) + 1 if nums else 1):04d}.jpg"
-            tmp = os.path.join(d, ".tmp_save.jpg")
-            final = os.path.join(d, name)
-            if img.mode != "RGB":
-                img = img.convert("RGB")
-            img.save(tmp, "JPEG", quality=quality)
-            with open(tmp, "rb") as f:
-                os.fsync(f.fileno())
-            os.replace(tmp, final)
-            return name
+    def _write_jpeg(self, d: str, img, quality: int) -> str:
+        """Write img into dir d as the next IMG_NNNN.jpg (temp+rename)."""
+        nums = [int(m.group(1)) for f in os.listdir(d)
+                if (m := _IMG_RE.match(f))]
+        name = f"IMG_{(max(nums) + 1 if nums else 1):04d}.jpg"
+        tmp = os.path.join(d, ".tmp_save.jpg")
+        if img.mode != "RGB":
+            img = img.convert("RGB")
+        img.save(tmp, "JPEG", quality=quality)
+        with open(tmp, "rb") as f:
+            os.fsync(f.fileno())
+        os.replace(tmp, os.path.join(d, name))
+        return name
+
+    def save_image(self, img, quality: int = 90):
+        """
+            Save a PIL image. Returns (name, staged): staged=False means it's
+            on the card as IMG_NNNN.jpg (any RAM-pending photos were flushed
+            first); staged=True means no card was writable and the photo is
+            held in RAM as RAM_NNNN (flushed automatically later, lost at
+            power-off). Raises only when RAM staging is full.
+        """
+        self._reprobe()
+        try:
+            with self._album_dir(write=True) as d:
+                for _, pending_img in self._pending:
+                    self._write_jpeg(d, pending_img, quality)
+                self._pending = []
+                return self._write_jpeg(d, img, quality), False
+        except Exception:
+            if len(self._pending) >= self.MAX_PENDING:
+                raise RuntimeError("RAM staging full — insert the card")
+            self._pending_counter += 1
+            name = f"RAM_{self._pending_counter:04d}"
+            self._pending.append((name, img.copy()))
+            logger.info(f"No writable card; staged {name} in RAM "
+                        f"({len(self._pending)} pending)")
+            return name, True
+
+    def flush_pending(self) -> int:
+        """Try to write RAM-staged photos to the card. Returns count flushed."""
+        if not self._pending:
+            return 0
+        self._reprobe()
+        try:
+            with self._album_dir(write=True) as d:
+                n = len(self._pending)
+                for _, img in self._pending:
+                    self._write_jpeg(d, img, 90)
+                self._pending = []
+                logger.info(f"Flushed {n} RAM-staged photo(s) to the card")
+                return n
+        except Exception:
+            return 0
 
     def list_images(self) -> list:
-        """Album filenames, oldest first. Empty when nothing is saved."""
+        """Album names, oldest first; RAM-staged photos (newest) last."""
+        self.flush_pending()
+        names = []
         try:
             with self._album_dir(write=False) as d:
-                return sorted(f for f in os.listdir(d) if _IMG_RE.match(f))
+                names = sorted(f for f in os.listdir(d) if _IMG_RE.match(f))
         except Exception:
-            return []
+            pass
+        return names + [name for name, _ in self._pending]
 
     def load_image(self, name: str):
         """Load one album image as PIL. Raises on failure."""
         from PIL import Image
+        for pending_name, img in self._pending:
+            if pending_name == name:
+                return img
         with self._album_dir(write=False) as d:
             img = Image.open(os.path.join(d, name))
             img.load()  # fully read before the partition unmounts
             return img
 
     def delete_image(self, name: str):
+        if any(n == name for n, _ in self._pending):
+            self._pending = [(n, i) for n, i in self._pending if n != name]
+            return
         with self._album_dir(write=True) as d:
             os.remove(os.path.join(d, name))
