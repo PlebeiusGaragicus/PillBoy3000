@@ -96,6 +96,9 @@ Buildroot config adaptations).
       desktop camera backend is NOT implemented — emulator would need an
       opencv/webcam stand-in first; that would also let QRScanView be tested
       on desktop).
+- [ ] GameBoy/NES emulation via libretro cores (gambatte + quicknes) with a
+      thin ctypes frontend — full plan in `../gameboy-proposal.md` (workspace
+      root). Start with its Phase A feasibility spike; measure before building.
 - [ ] pygame branch: swap PIL rendering for pygame Surfaces blitted to the ST7789
       (desktop gets a real pygame window for free). Measure frame rate vs PIL on
       hardware; migrate only if it clearly wins. Needs SDL added to the OS image.
